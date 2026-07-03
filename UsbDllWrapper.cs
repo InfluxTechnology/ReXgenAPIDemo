@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using InfluxShared.Generic;
 
 namespace USBDll
 {
@@ -12,7 +13,10 @@ namespace USBDll
         public static extern byte DeviceIsReady();
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte GetFirmwareVersionExt(out ushort MajorVersion, out byte MinVersion, out byte BranchVersion, out byte FwType);
+        public static extern byte DPGetFirmwareVersion(out ushort MajorVersion, out byte MinVersion, out byte BranchVersion, out byte FwType);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPGetFirmwareVersionWiFi(out ushort MajorVersion, out byte MinVersion, out byte BranchVersion, out byte FwType);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte DPGetSerialNumber(StringBuilder SerialNumber);
@@ -21,19 +25,19 @@ namespace USBDll
         public static extern byte DPReflash(out uint Status);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte FormatSDCard(ushort FormatType, out short Status);
+        public static extern byte DPSDFormat(ushort FormatType, out short Status);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte FormatSDCardPartitions(ushort FormatType, byte NumOfPartition, IntPtr PartitionInfo, out short Status);
+        public static extern byte DPPartitionFormat(ushort FormatType, byte NumOfPartition, IntPtr PartitionInfo, out short Status);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt16 GetLogCount();
+        public static extern byte DPSDLogCount(IntPtr LogCount);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt16 GetPartitionLogCount(byte partition);
+        public static extern byte DPPartitionLogCount(byte partition, IntPtr LogCount);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte GetSDLogInfo(
+        public static extern byte DPSDLogInfo(
             ushort LogNumber,
             IntPtr StartLogDateTime, IntPtr EndLogDateTime,
             IntPtr LoggingTimeStart, IntPtr LoggingTimeEnd,
@@ -41,27 +45,31 @@ namespace USBDll
             IntPtr LogDataSize, IntPtr GUID, IntPtr FileName, IntPtr isEncrypted);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte GetPartitionLogInfo(byte partition,
+        public static extern byte DPPartitionLogInfo(
+            byte partition,
             ushort LogNumber,
             IntPtr StartLogDateTime, IntPtr EndLogDateTime,
             IntPtr LoggingTimeStart, IntPtr LoggingTimeEnd,
             IntPtr LogStartDataSector, IntPtr LogEndDataSector,
             IntPtr LogDataSize, IntPtr GUID, IntPtr FileName, IntPtr isEncrypted);
 
-        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte SendConfiguration(char[] FileName, out short Status);
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        public static extern byte DPReconfigureFile(string FileName, out short Status);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte ReflashLogger(char[] FileName, out short Status);
+        public static extern byte DPReflashFile(char[] FileName, out short Status);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 GetDateTime();
+        public static extern byte DPReflashWiFi(char[] FileName, out short Status);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte SetDateTime(uint DateTimeUNIX);
+        public static extern byte DPGetDateTime(out uint DateTimeUNIX);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte GetLogData(IntPtr FileName, uint StartSector, uint EndSector);
+        public static extern byte DPSetDateTime(uint DateTimeUNIX);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPSDRequestSendData(IntPtr FileName, uint StartSector, uint EndSector);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte DPSDCurrentSector(out uint CurrentSector);
@@ -73,40 +81,148 @@ namespace USBDll
         public static extern byte DPGetMMCInfo(IntPtr mmc);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte InitLiveData(byte Channel);
+        public static extern byte DPUSBStartLiveData(byte Channel);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte StopLiveData(byte Channel);
+        public static extern byte DPUSBStopLiveData(byte Channel);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte GetLiveData(byte Channel, IntPtr LiveData);
+        public static extern byte DPUSBGetLiveData(byte Channel, IntPtr LiveData);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte DPUSBGetConfigInfo(byte[] ConfigGuid, out UInt32 ConfigSize);
+        public static extern byte DPUSBGetConfigInfo(byte[] ConfigGuid, out uint ConfigSize);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte DPConfigFileData(char[] FileName);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPConfigFileData(byte[] FileName);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte GetEEPROMPageFormat(byte PageNum, IntPtr PageFormat);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public extern static byte DPGetHWSettings(IntPtr data);
+        public static extern byte DPGetHWSettings(IntPtr data);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public extern static byte DPSetHWSettings(byte PageNum, byte offset, byte size, IntPtr page_data);
+        public static extern byte DPSetHWSettings(byte PageNum, byte offset, byte size, IntPtr page_data);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte StoreEEPROMHWSettings(byte PageNum, byte CRC);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public extern static byte DPSetSerialNumber(byte size, IntPtr Data);
+        public static extern byte DPSetSerialNumber(byte size, IntPtr Data);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public extern static byte DPGetSerialNumber(IntPtr Data);
+        public static extern byte DPGetSerialNumber(IntPtr Data);
 
         [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
-        public extern static byte GetRexgenInfo(out byte NumOfPartitions, out UInt32 SN);
+        public static extern byte DPGetRexgenInfo(out byte NumOfPartitions, out uint SN);
 
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPUSBSendStreamData(byte Channel, byte[] StreamData, uint StrreamDataSize);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte GetEncryptedKey(IntPtr AKey);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte ConfirmDecrytpedKey(IntPtr AKey, out byte IsLocked);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte SetAESKey(IntPtr key);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte IsDeviceLocked(out byte IsLocked);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte GetMicroType(out byte MicroType);
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPUSBStopProcessData();
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPDiagModeStart();
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPDiagModeStop();
+
+        [DllImport(DllFile, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte DPGetDiagInfo(IntPtr data);
+
+        public static byte GetFirmwareVersionExt(out ushort MajorVersion, out byte MinVersion, out byte BranchVersion, out byte FwType) =>
+            DPGetFirmwareVersion(out MajorVersion, out MinVersion, out BranchVersion, out FwType);
+
+        public static byte FormatSDCard(ushort FormatType, out short Status) => DPSDFormat(FormatType, out Status);
+
+        public static byte FormatSDCardPartitions(ushort FormatType, byte NumOfPartition, IntPtr PartitionInfo, out short Status) =>
+            DPPartitionFormat(FormatType, NumOfPartition, PartitionInfo, out Status);
+
+        public static ushort GetLogCount()
+        {
+            using (PinObj po = new PinObj((short)0))
+            {
+                _ = DPSDLogCount(po);
+                return (ushort)po.Object<short>();
+            }
+        }
+
+        public static ushort GetPartitionLogCount(byte partition)
+        {
+            using (PinObj po = new PinObj((short)0))
+            {
+                _ = DPPartitionLogCount(partition, po);
+                return (ushort)po.Object<short>();
+            }
+        }
+
+        public static byte GetSDLogInfo(
+            ushort LogNumber,
+            IntPtr StartLogDateTime, IntPtr EndLogDateTime,
+            IntPtr LoggingTimeStart, IntPtr LoggingTimeEnd,
+            IntPtr LogStartDataSector, IntPtr LogEndDataSector,
+            IntPtr LogDataSize, IntPtr GUID, IntPtr FileName, IntPtr isEncrypted) =>
+            DPSDLogInfo(
+                LogNumber,
+                StartLogDateTime, EndLogDateTime,
+                LoggingTimeStart, LoggingTimeEnd,
+                LogStartDataSector, LogEndDataSector,
+                LogDataSize, GUID, FileName, isEncrypted);
+
+        public static byte GetPartitionLogInfo(
+            byte partition,
+            ushort LogNumber,
+            IntPtr StartLogDateTime, IntPtr EndLogDateTime,
+            IntPtr LoggingTimeStart, IntPtr LoggingTimeEnd,
+            IntPtr LogStartDataSector, IntPtr LogEndDataSector,
+            IntPtr LogDataSize, IntPtr GUID, IntPtr FileName, IntPtr isEncrypted) =>
+            DPPartitionLogInfo(
+                partition,
+                LogNumber,
+                StartLogDateTime, EndLogDateTime,
+                LoggingTimeStart, LoggingTimeEnd,
+                LogStartDataSector, LogEndDataSector,
+                LogDataSize, GUID, FileName, isEncrypted);
+
+        public static byte SendConfiguration(char[] FileName, out short Status) =>
+            DPReconfigureFile(new string(FileName).TrimEnd('\0'), out Status);
+
+        public static byte ReflashLogger(char[] FileName, out short Status) => DPReflashFile(FileName, out Status);
+
+        public static uint GetDateTime()
+        {
+            _ = DPGetDateTime(out uint dateTimeUnix);
+            return dateTimeUnix;
+        }
+
+        public static byte GetLogData(IntPtr FileName, uint StartSector, uint EndSector) =>
+            DPSDRequestSendData(FileName, StartSector, EndSector);
+
+        public static byte InitLiveData(byte Channel) => DPUSBStartLiveData(Channel);
+
+        public static byte StopLiveData(byte Channel) => DPUSBStopLiveData(Channel);
+
+        public static byte GetLiveData(byte Channel, IntPtr LiveData) => DPUSBGetLiveData(Channel, LiveData);
+
+        public static byte GetRexgenInfo(out byte NumOfPartitions, out uint SN) => DPGetRexgenInfo(out NumOfPartitions, out SN);
     }
 }

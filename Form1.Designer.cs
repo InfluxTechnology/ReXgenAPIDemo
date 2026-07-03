@@ -53,6 +53,13 @@ namespace ReXgenAPIDemo
             this.dlgopenRXD = new System.Windows.Forms.OpenFileDialog();
             this.dlgSaveConvertedData = new System.Windows.Forms.SaveFileDialog();
             this.button2 = new System.Windows.Forms.Button();
+            this.btnLockStatus = new System.Windows.Forms.Button();
+            this.lblLockStatus = new System.Windows.Forms.Label();
+            this.btnMicroType = new System.Windows.Forms.Button();
+            this.lblMicroType = new System.Windows.Forms.Label();
+            this.txtAESKey = new System.Windows.Forms.TextBox();
+            this.btnSetAESKey = new System.Windows.Forms.Button();
+            this.lblAESKey = new System.Windows.Forms.Label();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -90,9 +97,9 @@ namespace ReXgenAPIDemo
             // 
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.lblStatus});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 428);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 523);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(384, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(552, 22);
             this.statusStrip1.TabIndex = 2;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -153,7 +160,7 @@ namespace ReXgenAPIDemo
             // 
             // btnLiveData
             // 
-            this.btnLiveData.Location = new System.Drawing.Point(26, 381);
+            this.btnLiveData.Location = new System.Drawing.Point(26, 469);
             this.btnLiveData.Name = "btnLiveData";
             this.btnLiveData.Size = new System.Drawing.Size(75, 23);
             this.btnLiveData.TabIndex = 8;
@@ -181,7 +188,7 @@ namespace ReXgenAPIDemo
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(26, 339);
+            this.button1.Location = new System.Drawing.Point(26, 428);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(101, 24);
             this.button1.TabIndex = 11;
@@ -238,11 +245,81 @@ namespace ReXgenAPIDemo
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
+            // btnLockStatus
+            // 
+            this.btnLockStatus.Location = new System.Drawing.Point(26, 324);
+            this.btnLockStatus.Name = "btnLockStatus";
+            this.btnLockStatus.Size = new System.Drawing.Size(101, 23);
+            this.btnLockStatus.TabIndex = 18;
+            this.btnLockStatus.Text = "Get Lock Status";
+            this.btnLockStatus.UseVisualStyleBackColor = true;
+            this.btnLockStatus.Click += new System.EventHandler(this.btnLockStatus_Click);
+            // 
+            // lblLockStatus
+            // 
+            this.lblLockStatus.AutoSize = true;
+            this.lblLockStatus.Location = new System.Drawing.Point(157, 329);
+            this.lblLockStatus.Name = "lblLockStatus";
+            this.lblLockStatus.Size = new System.Drawing.Size(0, 13);
+            this.lblLockStatus.TabIndex = 19;
+            // 
+            // btnMicroType
+            // 
+            this.btnMicroType.Location = new System.Drawing.Point(26, 375);
+            this.btnMicroType.Name = "btnMicroType";
+            this.btnMicroType.Size = new System.Drawing.Size(101, 23);
+            this.btnMicroType.TabIndex = 20;
+            this.btnMicroType.Text = "Get Micro Type";
+            this.btnMicroType.UseVisualStyleBackColor = true;
+            this.btnMicroType.Click += new System.EventHandler(this.btnMicroType_Click);
+            // 
+            // lblMicroType
+            // 
+            this.lblMicroType.AutoSize = true;
+            this.lblMicroType.Location = new System.Drawing.Point(144, 380);
+            this.lblMicroType.Name = "lblMicroType";
+            this.lblMicroType.Size = new System.Drawing.Size(0, 13);
+            this.lblMicroType.TabIndex = 21;
+            // 
+            // txtAESKey
+            // 
+            this.txtAESKey.Location = new System.Drawing.Point(235, 149);
+            this.txtAESKey.Name = "txtAESKey";
+            this.txtAESKey.Size = new System.Drawing.Size(138, 20);
+            this.txtAESKey.TabIndex = 23;
+            this.txtAESKey.Text = "01 02 03 04 05 06 07 08";
+            // 
+            // btnSetAESKey
+            // 
+            this.btnSetAESKey.Location = new System.Drawing.Point(379, 147);
+            this.btnSetAESKey.Name = "btnSetAESKey";
+            this.btnSetAESKey.Size = new System.Drawing.Size(79, 23);
+            this.btnSetAESKey.TabIndex = 24;
+            this.btnSetAESKey.Text = "Set AES Key";
+            this.btnSetAESKey.UseVisualStyleBackColor = true;
+            this.btnSetAESKey.Click += new System.EventHandler(this.btnSetAESKey_Click);
+            // 
+            // lblAESKey
+            // 
+            this.lblAESKey.AutoSize = true;
+            this.lblAESKey.Location = new System.Drawing.Point(232, 133);
+            this.lblAESKey.Name = "lblAESKey";
+            this.lblAESKey.Size = new System.Drawing.Size(106, 13);
+            this.lblAESKey.TabIndex = 25;
+            this.lblAESKey.Text = "AES Key (hex bytes):";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(384, 450);
+            this.ClientSize = new System.Drawing.Size(552, 545);
+            this.Controls.Add(this.lblAESKey);
+            this.Controls.Add(this.btnSetAESKey);
+            this.Controls.Add(this.txtAESKey);
+            this.Controls.Add(this.lblMicroType);
+            this.Controls.Add(this.btnMicroType);
+            this.Controls.Add(this.lblLockStatus);
+            this.Controls.Add(this.btnLockStatus);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.btnConvertRXD);
             this.Controls.Add(this.btnXMLToRXC);
@@ -293,6 +370,13 @@ namespace ReXgenAPIDemo
         private System.Windows.Forms.OpenFileDialog dlgopenRXD;
         private System.Windows.Forms.SaveFileDialog dlgSaveConvertedData;
         private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button btnLockStatus;
+        private System.Windows.Forms.Label lblLockStatus;
+        private System.Windows.Forms.Button btnMicroType;
+        private System.Windows.Forms.Label lblMicroType;
+        private System.Windows.Forms.TextBox txtAESKey;
+        private System.Windows.Forms.Button btnSetAESKey;
+        private System.Windows.Forms.Label lblAESKey;
     }
 }
 

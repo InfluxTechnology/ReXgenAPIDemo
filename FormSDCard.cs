@@ -56,7 +56,7 @@ namespace ReXgenAPIDemo
         {
             SDContent = new List<LogDetails>();
 
-            UsbDllWrapper.GetRexgenInfo(out byte NumOfPartitions, out uint sn);
+            USBDllComm.GetRexgenInfo(out byte NumOfPartitions, out uint sn);
             ushort LogNumber;
             DateTime dtStartLogDateTime;
             ushort LogCount = USBDllComm.SDLogCount(ActivePartitionID);

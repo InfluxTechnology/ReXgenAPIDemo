@@ -1,14 +1,16 @@
-﻿using InfluxShared.Generic;
+using InfluxShared.Generic;
 using System;
 using System.Runtime.InteropServices;
-using System.Text;
+using System.Threading;
 
 namespace USBDll
 {
     public enum ConfigureResult : byte
     {
-        Ok, Fail, BadConfig
-    };
+        Ok,
+        Fail,
+        BadConfig
+    }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     public struct MMC_INFO
@@ -29,27 +31,41 @@ namespace USBDll
         public static string SerialNumber = "";
         public static string ActiveConfiguration = "";
 
-        static USBDllComm()
-        {
-        }
-
         public static bool Connected
         {
             get
             {
                 bool ok = UsbDllWrapper.DeviceIsReady() > 0 ? true : UsbDllWrapper.DeviceIsReady() > 0;
+                if (!ok)
+                    return false;
 
-                return ok;
+                UpdateVersionInfo();
+                return true;
             }
         }
 
         public static string SerialNumberFull { get; private set; }
 
+        static void UpdateVersionInfo()
+        {
+            Version = 0;
+            PartitionCount = 0;
+            Firmware = GetFirmware();
+
+            string[] fw = Firmware.Split('.');
+            if (fw.Length < 2)
+                return;
+
+            string versionPrefix = fw[0] + "." + fw[1].PadLeft(3, '0');
+            if (string.Compare(versionPrefix, "1.042", StringComparison.Ordinal) >= 0)
+                Version = 1;
+            if (string.Compare(fw[0], "2", StringComparison.Ordinal) >= 0)
+                Version = 2;
+        }
+
         public static string GetSerialNumber()
         {
-            byte Res;
-            //Res = DPGetSerialNumber(out byte[] serial);   //New implementation
-            return ""; //serial.ToString();
+            return "";
         }
 
         public static byte Reflash(out uint Status) => UsbDllWrapper.DPReflash(out Status);
@@ -61,28 +77,26 @@ namespace USBDll
 
             if (Version == 0 || PartitionsCount == 0)
                 res = UsbDllWrapper.FormatSDCard(FormatType, out Status);
-            else if (Version == 1)
+            else if (Version >= 1)
+            {
                 using (PinObj poSizes = new PinObj(PartitionSizes))
                     res = UsbDllWrapper.FormatSDCardPartitions(FormatType, PartitionsCount, poSizes, out Status);
+            }
             else
                 return 0;
 
             if (Status == 0)
                 PartitionCount = PartitionsCount;
-            //GetRexgenInfo(out USBDllComm.PartitionCount, out uint _);
 
             return res;
         }
 
         public static ushort SDLogCount(byte partition)
         {
-            using (PinObj poLogCount = new PinObj(new short()))
-            {
-                if (Version >= 1 && PartitionCount > 0)
-                    return UsbDllWrapper.GetPartitionLogCount(partition);
-                else
-                    return UsbDllWrapper.GetLogCount();
-            }
+            if (Version >= 1 && PartitionCount > 0)
+                return UsbDllWrapper.GetPartitionLogCount(partition);
+
+            return UsbDllWrapper.GetLogCount();
         }
 
         public static byte SDLogInfo(
@@ -95,7 +109,6 @@ namespace USBDll
         {
             byte[] bGuid;
             byte[] bFileName;
-            byte bIsEncrypted;
             using (PinObj poStartLogDateTime = new PinObj(StartLogDateTime = 0))
             using (PinObj poEndLogDateTime = new PinObj(EndLogDateTime = 0))
             using (PinObj poLoggingTimeStart = new PinObj(LoggingTimeStart = 0))
@@ -105,7 +118,7 @@ namespace USBDll
             using (PinObj poLogDataSize = new PinObj(LogDataSize = 0))
             using (PinObj poGUID = new PinObj(bGuid = new byte[16]))
             using (PinObj poFileName = new PinObj(bFileName = new byte[256]))
-            using (PinObj poIsEncrypted = new PinObj(bIsEncrypted = 0))
+            using (PinObj poIsEncrypted = new PinObj((byte)0))
             {
                 byte res = 0;
                 if (Version >= 1 && PartitionCount > 0)
@@ -129,26 +142,25 @@ namespace USBDll
 
         public static ConfigureResult Reconfigure(string FileName)
         {
-            byte Res;
-            short Status;
-
-            Res = UsbDllWrapper.SendConfiguration((FileName + '\0').ToCharArray(), out Status);
-            if (Res == 1)
-            {
-                if (Status != 0)
-                    return ConfigureResult.BadConfig;  //Configuration Error
-                return ConfigureResult.Ok;
-            }
-            else
+            byte res = UsbDllWrapper.DPReconfigureFile(FileName, out short status);
+            if (res != 0)
                 return ConfigureResult.Fail;
+
+            return status != 0 ? ConfigureResult.BadConfig : ConfigureResult.Ok;
         }
 
-        public static byte ReflashFile(string FileName, out short Status) => UsbDllWrapper.ReflashLogger((FileName + '\0').ToCharArray(), out Status);
+        public static byte ReflashFile(string FileName, out short Status) => UsbDllWrapper.DPReflashFile((FileName + '\0').ToCharArray(), out Status);
+
+        public static byte ReflashWiFi(string FileName, out short Status) => UsbDllWrapper.DPReflashWiFi((FileName + '\0').ToCharArray(), out Status);
+
+        public static byte GetDateTime(out uint DateTimeUNIX) => UsbDllWrapper.DPGetDateTime(out DateTimeUNIX);
+
+        public static byte SetDateTime(uint DateTimeUNIX) => UsbDllWrapper.DPSetDateTime(DateTimeUNIX);
 
         public static byte SDRequestSendData(string FileName, uint StartSector, uint EndSector)
         {
-            using (PinObj poFileName = new PinObj(Encoding.ASCII.GetBytes(FileName + '\0')))
-                return UsbDllWrapper.GetLogData((IntPtr)poFileName, StartSector, EndSector);
+            using (PinObj poFileName = new PinObj(FileName + '\0'))
+                return UsbDllWrapper.DPSDRequestSendData(poFileName, StartSector, EndSector);
         }
 
         public static byte SDCurrentSector(out uint CurrentSector) => UsbDllWrapper.DPSDCurrentSector(out CurrentSector);
@@ -165,9 +177,9 @@ namespace USBDll
             }
         }
 
-        public static byte GetConfigInfo(out Guid ConfigurationGuid, out UInt32 ConfigurationSize)
+        public static byte GetConfigInfo(out Guid ConfigurationGuid, out uint ConfigurationSize)
         {
-            var guid = new byte[16];
+            byte[] guid = new byte[16];
             byte res = UsbDllWrapper.DPUSBGetConfigInfo(guid, out ConfigurationSize);
             ConfigurationGuid = new Guid(guid);
             return res;
@@ -175,41 +187,74 @@ namespace USBDll
 
         public static byte GetActiveConfiguration(string FileName) => UsbDllWrapper.DPConfigFileData((FileName + '\0').ToCharArray());
 
-        private static bool ArrayEquality(byte[] a1, byte[] b1)
+        public static bool GetActiveConfigurationInfo(out string name, out Guid guid, out uint size)
         {
-            int i;
-            if (a1.Length == b1.Length)
+            byte[] guidActive = new byte[16];
+            UsbDllWrapper.DPUSBGetConfigInfo(guidActive, out uint configSize);
+
+            short logCount = (short)SDLogCount(0);
+            if (logCount > 0)
             {
-                i = 0;
-                while (i < a1.Length && (a1[i] == b1[i])) //Earlier it was a1[i]!=b1[i]
+                for (int i = logCount - 1; i >= 0; i--)
                 {
-                    i++;
-                }
-                if (i == a1.Length)
-                {
-                    return true;
+                    SDLogInfo(
+                        0,
+                        (ushort)i,
+                        out uint StartLogDateTime, out uint EndLogDateTime,
+                        out uint LoggingTimeStart, out uint LoggingTimeEnd,
+                        out uint LogStartDataSector, out uint LogEndDataSector, out uint LogDataSize,
+                        out Guid logGuid, out string logName, out bool isEncrypted);
+
+                    if (logGuid.Equals(new Guid(guidActive)))
+                    {
+                        name = logName;
+                        guid = logGuid;
+                        size = LogDataSize;
+                        return true;
+                    }
                 }
             }
 
+            name = "";
+            guid = Guid.Empty;
+            size = 0;
             return false;
         }
 
         public static string GetFirmware()
         {
-            string[] FirmwareReleaseType = new string[4] { "", "A", "B", "RC" };
+            string[] firmwareReleaseType = new string[4] { "", "A", "B", "RC" };
+            _ = UsbDllWrapper.DPGetFirmwareVersion(out ushort majorVersion, out byte minVersion, out byte branchVersion, out byte fwType);
+            return $"{majorVersion}.{minVersion}.{branchVersion} {firmwareReleaseType[fwType]}";
+        }
 
-            byte MinVersion, Res, BranchVersion, fwType;
-            ushort MajorVersion;
-            Res = UsbDllWrapper.GetFirmwareVersionExt(out MajorVersion, out MinVersion, out BranchVersion, out fwType);
-            return $"{MajorVersion}.{MinVersion}.{BranchVersion} {FirmwareReleaseType[fwType]}";
+        public static string GetFirmwareWiFi()
+        {
+            for (byte req = 0; req < 3; req++)
+            {
+                _ = UsbDllWrapper.DPGetFirmwareVersionWiFi(out ushort majorVersion, out byte minVersion, out byte branchVersion, out byte fwType);
+                if (majorVersion > 0 || minVersion > 0 || branchVersion > 0)
+                    return $"{majorVersion}.{minVersion}.{branchVersion}";
+
+                Thread.Sleep(1000);
+            }
+
+            return "0.0.0";
+        }
+
+        public static byte GetMicroType()
+        {
+            byte microType = 0;
+            if (Connected && Version > 1)
+                _ = UsbDllWrapper.GetMicroType(out microType);
+
+            return microType;
         }
 
         public static DateTime GetDateTime()
         {
-            byte Res;
-            uint uDateTime;
-            uDateTime = UsbDllWrapper.GetDateTime();
-            return DateTimeOffset.FromUnixTimeSeconds(uDateTime).DateTime;
+            _ = UsbDllWrapper.DPGetDateTime(out uint unixDateTime);
+            return DateTimeOffset.FromUnixTimeSeconds(unixDateTime).DateTime;
         }
 
         public static byte GetEEPROMPageFormat(byte PageNum, out byte[] PageFormat)
@@ -235,10 +280,7 @@ namespace USBDll
         public static byte SendHWSettings(byte PageNum, byte offset, byte size, byte[] page_data)
         {
             using (PinObj po = new PinObj(page_data))
-            {
-                byte res = UsbDllWrapper.DPSetHWSettings(PageNum, offset, size, po);
-                return res;
-            }
+                return UsbDllWrapper.DPSetHWSettings(PageNum, offset, size, po);
         }
 
         public static byte StoreEEPROMHWSettings(byte PageNum, byte CRC) => UsbDllWrapper.StoreEEPROMHWSettings(PageNum, CRC);
@@ -246,10 +288,7 @@ namespace USBDll
         public static byte SendSerialNumber(byte size, byte[] Data)
         {
             using (PinObj po = new PinObj(Data))
-            {
-                byte res = UsbDllWrapper.DPSetSerialNumber(size, po);
-                return res;
-            }
+                return UsbDllWrapper.DPSetSerialNumber(size, po);
         }
 
         public static byte DPGetSerialNumber(out byte[] Data)
@@ -262,20 +301,84 @@ namespace USBDll
             }
         }
 
-        public static byte GetRexgenInfo(out byte NumOfPartitions, out UInt32 SN)
+        public static byte GetRexgenInfo(out byte NumOfPartitions, out uint SN)
         {
-            byte res = 0;
             NumOfPartitions = 0;
             SN = 0;
-            if (Version == 0)
-            {
-                res = 0;
-            }
-            else if (Version == 1)
-                res = UsbDllWrapper.GetRexgenInfo(out NumOfPartitions, out SN);
 
-            return res;
+            if (Version == 0)
+                UpdateVersionInfo();
+
+            if (Version == 0)
+                return 0;
+
+            return UsbDllWrapper.DPGetRexgenInfo(out NumOfPartitions, out SN);
         }
 
+        public static byte SendStreamData(byte Channel, byte[] StreamData, uint StrreamDataSize)
+        {
+            if (StreamData == null)
+                throw new ArgumentNullException(nameof(StreamData));
+
+            return UsbDllWrapper.DPUSBSendStreamData(Channel, StreamData, StrreamDataSize);
+        }
+
+        public static byte[] GetEncryptedKey()
+        {
+            using (PinObj po = new PinObj(new byte[128]))
+            {
+                byte res = UsbDllWrapper.GetEncryptedKey(po);
+                if (res != 0)
+                    return null;
+
+                return po;
+            }
+        }
+
+        public static bool ConfirmDecrytpedKey(byte[] Key)
+        {
+            using (PinObj po = new PinObj(Key))
+            {
+                _ = UsbDllWrapper.ConfirmDecrytpedKey(po, out byte status);
+                return status == 0;
+            }
+        }
+
+        public static byte SetAESKey(byte[] key)
+        {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            using (PinObj po = new PinObj(key))
+                return UsbDllWrapper.SetAESKey(po);
+        }
+
+        public static int IsDeviceLocked()
+        {
+            if (UsbDllWrapper.DeviceIsReady() == 0)
+                return -1;
+
+            byte res = UsbDllWrapper.IsDeviceLocked(out byte status);
+            if (res != 0)
+                return -1;
+
+            return status;
+        }
+
+        public static byte StopProcessData() => UsbDllWrapper.DPUSBStopProcessData();
+
+        public static byte StartDiagnosticMode() => UsbDllWrapper.DPDiagModeStart();
+
+        public static byte StopDiagnosticMode() => UsbDllWrapper.DPDiagModeStop();
+
+        public static byte GetDiagnosticInfo(out byte[] data)
+        {
+            using (PinObj po = new PinObj(new byte[128]))
+            {
+                byte res = UsbDllWrapper.DPGetDiagInfo(po);
+                data = po;
+                return res;
+            }
+        }
     }
 }
